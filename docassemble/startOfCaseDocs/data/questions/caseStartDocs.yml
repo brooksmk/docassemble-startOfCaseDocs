@@ -1,0 +1,427 @@
+---
+modules:
+  - docassemble.base.util
+  - docassemble.base.legal
+---
+metadata:
+  title: |
+    Start of Case Documents
+  description: |
+    An interview to get a signed retainer, authorization, and LAR form.
+  authors:
+     - name: Matt Brooks
+       organization: Greater Boston Legal Services
+  revision_date: 2018-10-22
+---
+objects:
+  - advocate: Individual
+  - client: Individual
+---
+comment: |
+  ## One of two mandatory blocks in the interview. Controls the order in which 
+  ## the interview asks questions. Only other mandatory block is client end screen.
+mandatory: True
+code: |
+  multi_user = True
+  client.name.first
+  advocate.name.first
+  advocate_signature
+  LAR_needed
+  LAR_appearance_date
+  plaintiff_name
+  defendant_name
+  LAR_withdrawal_info_needed
+  LAR_withdrawal_date
+  legal_problem
+  we_have_switched
+  client_splash_seen
+  client_signature
+  agrees_to_sign
+  success_sending_email
+---
+question: |
+  Enter your client's first and last name.
+fields:
+  - First Name: client.name.first
+  - Last Name: client.name.last
+---
+question: |
+  Tell me your name, email address, and BBO (if applicable).
+fields:
+  - First Name: advocate.name.first
+  - Last Name: advocate.name.last
+  - Email Address: advocate.email
+    datatype: email
+  - BBO Number: advocate.BBO
+    required: False
+---
+comment: |
+  ## Main question text is put in the "under:" statement here because it displays
+  ## better on mobile, and prevents the question text from blocking the touch
+  ## screen.
+question: |
+  ${ client.name.firstlast() }
+signature: client_signature
+under: |
+  Sign your name here by using your mouse or touching your phone's screen.
+  Press clear if you want to start over. You will be able to review your 
+  documents before they are sent to your advocate.
+---
+need: LAR_needed
+question: |
+  Sign your name here.
+subquestion: |
+  Your signature will appear on
+  % if LAR_needed == True:
+  the retainer and LAR. 
+  % else:
+  the retainer.
+  % endif
+signature: advocate_signature
+under: |
+  ${ advocate.name.firstlast() }
+---
+question: |
+  Do you need an LAR form?
+yesno: LAR_needed
+---
+question: |
+  Please provide the following information for the LAR form. Anything you leave blank
+  will be blank on the LAR form.
+fields:
+  - Court Name: court_name
+    required: False
+  - Case Number: case_number
+    required: False
+  - LAR Appearance Date: LAR_appearance_date
+    datatype: date
+    required: False
+  - LAR Event Description: LAR_event_description
+    required: False
+  - Opposing Party Name: opposing_party_name
+    required: False
+---
+comment: |
+  ## Need this question to know where to put the client's name on the LAR form,
+  ## and to get the opposing party name for the LAR form.
+question: |
+  Is your client the Plaintiff or the Defendant in their case?
+subquestion: |
+  Select whether your client is the Plaintiff or the Defendant in their case. If they
+  are neither, select "Neither" and enter the names of the Plaintiff and the Defendant
+  for the LAR form.
+fields: 
+  - Plaintiff or Defendant: client_party_side
+    choices:
+      - Plaintiff: plaintiff 
+      - Defendant: defendant
+      - Neither: neither
+  - Plaintiff Name: plaintiff_name
+    show if:
+      variable: client_party_side
+      is: neither
+  - Defendant Name: defendant_name
+    show if:
+      variable: client_party_side
+      is: neither
+---
+comment: |
+  ## this code ensures that if the advocate chooses not to fill in the opposing
+  ## party name when prompted, that docassemble won't ask about who the plaintiff
+  ## and defendant are. Presumably, if the advocate chooses no to fill out the
+  ## opposing party information, it is because they want the case name on the LAR
+  ## to be blank.
+code: |
+  if opposing_party_name == "":
+    plaintiff_name = ""
+    defendant_name = ""
+    client_party_side = ""
+  if client_party_side == 'defendant':
+    plaintiff_name = opposing_party_name
+    defendant_name = client.name.firstlast()
+  if client_party_side == 'plaintiff':
+    plaintiff_name = client.name.firstlast()
+    defendant_name = opposing_party_name
+---
+question: |
+  Do you want to fill out LAR withdrawal information?
+yesno: LAR_withdrawal_info_needed
+---
+comment: |
+  ## The two area fields here match the layout of GBLS's standard, plain language
+  ## retainer. They are both required because we don't want clients signing blank
+  ## retainers.
+question: |
+  Describe the legal problem and what you agree to do for the retainer.
+fields:
+  - Legal Problem: legal_problem
+    datatype: area
+  - What GBLS Agrees to Do: GBLS_agrees_to_do
+    datatype: area
+---
+comment: |
+  ## This is the ending screen for the advocate. The interview_url() function
+  ## takes arguments, and passes them to the interview's url--with a unique
+  ## session ID--as url_args(). We then use code in the next block to define
+  ## the variable we_have_switched if 'switch' is in the url_args. The mandatory
+  ## block of this interview needs we_have_switched to be defined in order to
+  ## proceed, so clicking the link generated by this screen is the only way to
+  ## proceed with the rest of the interview.
+sets: we_have_switched
+comment: |
+  ## Docassemble needs the helps of "sets:" here to understand that this screen
+  ## will lead to we_have_switched being defined. I don't think docassemble's
+  ## logic understands that interview_url(switch=True) defines url_args, which
+  ## needs to be defined in order to get the code in the next block to run.
+question: |
+    Send your client this link and tell them to click on it. It will take them to 
+    the rest of the interview. Docassemble will send you your client's signed 
+    documents when they are ready, or let you know if your client indicates that 
+    they don't agree to sign the documents.
+    
+    [link to documents](${ interview_url(switch=True) })
+subquestion: |
+  Once you have sent the link to your client, you may close this window.
+---
+comment: |
+  ## defines we_have_switched, allowing the interview to proceed.
+code: |
+  if 'switch' in url_args:
+    we_have_switched = True
+---
+comment: |
+  ## This is the first screen the client sees upon clicking the link provided by
+  ## their advocate.
+question: |
+  Welcome! You are here because your advocate needs you to review some documents,
+  and sign them if you agree. The next screen will ask you for a sample of your 
+  signature, but you will be given a chance to review any documents your advocate
+  wants you to sign before they are sent you your advocate. Your signature will
+  not be used without your permission.
+field: client_splash_seen
+subquestion: |
+  Click "Continue" to keep going with the interview.
+---
+comment: |
+  ## displays the documents that the advocate specified they needed on the screen.
+  ## Also allows the client to download a zip file of all the documents for their
+  ## records. Prompts the client to click yes if they agree to sign, or no
+  ## otherwise.
+question: |
+  Here are your documents. Please review them, and click yes if you agree to
+  sign them. Otherwise, click no, and your advocate will be notified.
+  
+  ${ Signed_Authorization }
+  ${ Signed_Retainer }
+  
+  % if LAR_withdrawal_info_needed == True:
+    ${ LAR_with_withdrawal }
+  % elif (LAR_withdrawal_info_needed == False) and (LAR_needed == True):
+    ${ LAR }
+  % endif
+  
+  You can download copies for your records here
+  ${zip_file(downloads_concat, filename="Your Documents.zip")} 
+  
+  If you agree to sign all of these documents, click yes. Otherwise, click no.
+yesno: agrees_to_sign
+comment: |
+  ## Look at https://github.com/GBLSMA/docassemble-MAEvictionDefense/blob/da2f01dc87849431246ebece63cc3d6d43e648ed/docassemble/MAEvictionDefense/data/questions/eviction.yml
+---
+attachment:
+  - name: Retainer
+    variable name: Signed_Retainer
+    filename: Retainer_Signed
+    valid formats:
+      - pdf
+    docx template file: Retainer.docx
+---
+attachment:
+  - name: Authorization
+    variable name: Signed_Authorization
+    valid formats:
+      - pdf
+    filename: Authorization_Signed
+    docx template file: Blank_General_Authorization_Form-English.docx
+---
+attachment:  
+  - name: LAR
+    variable name: LAR
+    filename: Notice_of_Limited_Appearance
+    pdf template file: notice-of-limited-appearance__with_fields.pdf
+    fields:
+      court_name: |
+        ${ court_name }
+      case_number: |
+        ${ case_number}
+      plaintiff_name: |
+        ${plaintiff_name}
+      defendant_name: |
+        ${defendant_name}
+      client.name.text: |
+        ${ client.name.firstlast() }
+      LAR_event_description: |
+        ${ LAR_event_description }
+      advocate.name.text: |
+        ${ advocate.name.firstlast() }
+      advocate.BBO: |
+        ${ advocate.BBO }
+      advocate.email_address(): |
+        ${ advocate.email }
+      advocate_signature: |
+        ${ advocate_signature }
+      LAR_appearance_date: |
+        % if LAR_appearance_date == "":
+        ${ }
+        % else:
+        ${ format_date(LAR_appearance_date, format='short') }
+        % endif
+      LAR_appearance_date_two: |
+        % if LAR_appearance_date == "":
+        ${ }
+        % else:
+        ${ format_date(LAR_appearance_date, format='short') }
+        % endif
+      client_signature: |
+        ${ client_signature }
+    show if:
+      variable: LAR_needed
+      is: True
+    hide if:
+      variable: LAR_withdrawal_info_needed
+      is: True
+---
+attachment:
+  - name: Your_LAR
+    variable name: LAR_with_withdrawal
+    filename: Notice_of_Limited_Appearance_with_Withdrawal
+    pdf template file: notice-of-limited-appearance__with_fields_withdrawal.pdf
+    fields:
+      court_name: |
+        ${ court_name }
+      case_number: |
+        ${ case_number}
+      plaintiff_name: |
+        ${plaintiff_name}
+      defendant_name: |
+        ${defendant_name}
+      client.name.text: |
+        ${ client.name.firstlast() }
+      LAR_event_description: |
+        ${ LAR_event_description }
+      advocate.name.text: |
+        ${ advocate.name.firstlast() }
+      advocate.BBO: |
+        ${ advocate.BBO }
+      advocate.email_address(): |
+        ${ advocate.email }
+      advocate_signature: |
+        ${ advocate_signature }
+      advocate_signature_two: |
+        ${ advocate_signature }
+      LAR_appearance_date: |
+        % if LAR_appearance_date == "":
+        ${ }
+        % else:
+        ${ format_date(LAR_appearance_date, format='short') }
+        % endif
+      LAR_appearance_date_two: |
+        % if LAR_appearance_date == "":
+        ${ }
+        % else:
+        ${ format_date(LAR_appearance_date, format='short') }
+        % endif
+      client_signature: |
+        ${ client_signature }
+      client_signature_two: |
+        ${ client_signature }
+      LAR_withdrawal_date: |
+        ${ format_date(LAR_withdrawal_date, format='short') }
+      LAR_withdrawal_date_two: |
+        ${ format_date(LAR_withdrawal_date, format='short') }
+---
+comment: |
+  ## Sends the document package to the advocate if the client agrees to sign.
+  ## Otherwise, lets the advocate know that the client didn't agree to sing the
+  ## documents.
+need:
+  - agrees_to_sign
+code: |
+  if agrees_to_sign == True:
+    send_email(to=[advocate.email], subject=str(client.name.firstlast()) + " Document Package", attachments=[downloads_concat])
+    success_sending_email = True
+  else:
+    send_email(to=[advocate.email], subject=str(client.name.firstlast()) + " did not agree to sign")
+    success_sending_email = False
+---
+mandatory: True
+question: |
+  % if success_sending_email == True:
+    Your interview is complete.
+    Your documents have been sent to your advocate.
+  % elif success_sending_email == False:
+    You have not agreed to sign your documents.
+    Your advocate has been notified and will reach out to you.
+  % else:
+    Something went wrong. Please call or email your advocate to let them know.
+  % endif
+subquestion: |
+  You may now close this window.
+---
+comment: |
+  ## the interview always produces all the documents it is capable of producing, 
+  ## but only shows the necessary ones to the client based on what package the 
+  ## client's answers lead it to.
+code: |
+  if package == 'a':
+    downloads = [Signed_Retainer, Signed_Authorization]
+  elif package == 'b': 
+    downloads = [Signed_Retainer, Signed_Authorization, LAR]
+  elif package == 'c':
+    downloads = [Signed_Retainer, Signed_Authorization, LAR_with_withdrawal]
+    
+  downloads_concat = pdf_concatenate(downloads)
+
+  
+---
+need:
+  - LAR_needed
+code: |
+  if LAR_needed == False:
+    LAR_withdrawal_info_needed = False
+    LAR_withdrawal_date = 'None'
+    court_name = 'None'
+    case_number = 'None'
+    LAR_appearance_date = 'None'
+    opposing_party_name = 'None'
+    client_party_side = 'None'
+    plaintiff_name = 'None'
+    defendant_name = 'None'
+    package = 'a'
+  elif (LAR_needed == True) and (LAR_withdrawal_info_needed == False): 
+    LAR_withdrawal_date = 'None'
+    package = 'b'
+  elif (LAR_needed == True) and (LAR_withdrawal_info_needed == True):
+    package = 'c'
+comment: | 
+  ## After LAR_needed and LAR_withdrawal_info_needed are both defined, we know enough
+  ## to decide whether the client/advocate will ever need to see an LAR or an LAR with a
+  ## withdrawal, the two optional documents. If the client/advocate don't need to see
+  ## these documents, the code provides dummy values for variables conatined solely in 
+  ## these unseen documents, so the mandatory block can progress pass defining them. It
+  ## also defines package, which is the variable that tells docassemble which documents 
+  ## the client needs to see.
+---
+comment: |
+  ## Put this down here because I wanted it to supersede other non-mandatory blocks that
+  ## were getting asked before it. May not need to be here anymore now that the interview
+  ## only has one mandatory block.
+question: |
+  Fill in the withdrawal information here.
+fields:
+  - LAR Withdrawal Date: LAR_withdrawal_date
+    datatype: date
+
+  
+  
+    
