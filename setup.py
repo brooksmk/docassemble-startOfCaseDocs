@@ -45,9 +45,9 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
     return out
 
 setup(name='docassemble.startOfCaseDocs',
-      version='0.1',
+      version='0.12',
       description=('An interview that fills in and presents to a client for review and electronic signature an authorization, retainer, and limited assistance representation form (if applicable).'),
-      long_description=u'# docassemble.startOfCaseDocs\n\nAn interview that fills in and presents to a client for review and electronic signature an authorization, retainer, and limited assistance representation form (if applicable).\n\n## Author\n\nMbrooks@gbls.org\n\n',
+      long_description='# docassemble.startOfCaseDocs\r\n\r\nAn interview that fills in and presents to a client for review and electronic signature an authorization, retainer, and limited assistance representation form (if applicable).\r\n\r\n## Author\r\n\r\nMbrooks@gbls.org\r\n\r\n## change log\r\n\r\n10-22-18: Initial commit.\r\n11-23-18: Added fees language to retainer.\r\n\r\n',
       long_description_content_type='text/markdown',
       author='Matt Brooks',
       author_email='Mbrooks@gbls.org',

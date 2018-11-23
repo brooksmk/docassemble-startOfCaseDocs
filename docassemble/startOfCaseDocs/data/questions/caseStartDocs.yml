@@ -381,7 +381,6 @@ code: |
     downloads = [Signed_Retainer, Signed_Authorization, LAR_with_withdrawal]
     
   downloads_concat = pdf_concatenate(downloads)
-
   
 ---
 need:
@@ -421,7 +420,3 @@ question: |
 fields:
   - LAR Withdrawal Date: LAR_withdrawal_date
     datatype: date
-
-  
-  
-    
