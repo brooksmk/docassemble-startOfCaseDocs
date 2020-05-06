@@ -1,0 +1,103 @@
+---
+modules:
+	- docassemble.base.util
+	- docassemble.base.legal
+---
+metadata:
+	description: |
+		An interview to create a certificate of service
+	authors: |
+		- name: Matt Brooks
+		  organization: Greater Boston Legal Services
+	revision_date: 2020-05-06
+---
+objects:
+	client: Individual
+  opposing_party: Person
+---
+code: |
+  if method_of_service == 'First Class Mail' or method_of_service == 'Fax' or method_of_service == 'In Hand' or method_of_service == 'FedEx' or method_of_service == 'Other':
+    opposing_party.email = DAEmpty()
+    opposing_party.fax_number = DAEmpty()
+  elif method_of_service == 'Email':
+    opposing_party.fax_number = DAEmpty()
+  elif method_of_service == 'Fax':
+    opposing_party.email = DAEmpty()
+  assign_empty_variables = 'Done'
+---
+comment: |
+	## Mandatory block that determines interview order.
+code: |
+  client.name.first
+  assign_empty_variables
+	opposing_party.address
+	client.phone_number
+	pleading_title
+	done_certificate_Of_Service
+---
+question: |
+	What is your name?
+fields:
+	- First Name: client.name.first
+	- Last Name: client.name.last
+---
+question: |
+	What is the contact information of the other party in your case?
+fields:
+	- Street Address: opposing_party.address.address
+	- City: opposing_party.address.city
+	  default: Boston
+	- State: opposing_party.address.state
+	  default: MA
+	- Zip Code: opposing_party.address.zip
+  - Fax Number: opposing_party.fax_number
+    show if:
+      code: | 
+        method_of_service == 'Fax'
+  - Email: opposing_party.email
+    show if:
+      code: | 
+        method_of_service == 'Email'
+---
+question: |
+  What is the name of the other party?
+fields:
+  - Plaintiff Name: opposing_party.name
+---
+question: |
+	${ client.name.firstlast() }
+signature: client.signature
+under: |
+  Sign your name here by using your mouse or touching your phone's screen.
+  Press clear if you want to start over.
+---
+question: |
+  How are you serving the other party in the case?
+fields:
+  - Method of Service: method_of_service
+    choices:
+      - First Class Mail
+      - In Hand
+      - Fax
+      - Email
+      - FedEx
+      - Other
+  - Other Method of Service: method_of_service
+    show if:
+      variable: method_of_service
+      is: Other
+---
+question: |
+	Here is your certificate of service
+	
+	${ certificate_of_service_variable }
+  
+field: done_certificate_Of_Service
+---
+attachment:
+	- name: Certificate of Service
+	  variable name: certificate_of_service_variable
+	  filename: certificate_of_service
+	  docx template file: certificate_of_service_template.docx
+	
+	
